@@ -23,11 +23,11 @@ jobs:
           # all of these default to true, but feel free to set to
           # "false" if necessary for your workflow
           android: true
-          dotnet: false
+          dotnet: true
           haskell: true
-          large-packages: false
-          docker-images: false
-          swap-storage: false
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: Checkout repository
         uses: actions/checkout@v3

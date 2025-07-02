@@ -76,7 +76,7 @@ COPY config/.zshrc /etc/zsh/.zshrc
 
 RUN \
     # give permission to all users
-    chmod 644 /etc/zsh/zshrc \
+    chmod 644 /etc/zsh/.zshrc \
     # give opt permission to all users
     && chmod -R 755 /opt \
     # --- Configure Git LFS for the user ---

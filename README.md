@@ -1,7 +1,8 @@
 ## Build
 
 ```bash
-build.sh
+bash download.sh
+bash build.sh
 ```
 You will get ai-dev-env.sif
 

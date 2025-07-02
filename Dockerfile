@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     git-lfs \
     lsd \
     bat \
+    htop \
+    nvtop \
     gocryptfs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -39,23 +41,30 @@ RUN apt-get update && apt-get install -y \
     && mkdir /workspace \
     && chown -R dev:dev /workspace
 
-RUN wget https://github.com/bootandy/dust/releases/download/v1.2.1/du-dust_1.2.1-1_amd64.deb \
-    && dpkg -i du-dust_1.2.1-1_amd64.deb \
-    && rm du-dust_1.2.1-1_amd64.deb
+# Copy pre-downloaded packages
+COPY download/ /tmp/download/
+
+# Install pre-downloaded .deb packages and zellij
+RUN dpkg -i /tmp/download/*.deb \
+    && rm /tmp/download/*.deb \
+    # Install zellij to /usr/bin
+    && cp /tmp/download/zellij /usr/bin/zellij \
+    && chmod 755 /usr/bin/zellij \
+    && rm /tmp/download/zellij
 
 # --- Stage 3: User-level installations and configurations ---
 # All tools are installed in the user's home directory.
 RUN \
-    # --- Install Miniforge to /home/dev/miniforge3 ---
-    echo "Installing Miniforge to $HOME/miniforge3..." \
-    && curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" \
-    && bash Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge3 \
-    && rm Miniforge3-Linux-x86_64.sh \
+    # --- Install Miniforge to /opt/miniforge3 ---
+    echo "Installing Miniforge to /opt/miniforge3..." \
+    && bash /tmp/download/Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge3 \
+    && rm /tmp/download/Miniforge3-Linux-x86_64.sh \
     \
     # --- Install uv to /usr/bin/uv ---
-    && echo "Installing uv to $HOME/.local/bin..." \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && mv $HOME/.local/bin/uv /usr/bin/uv \  
+    && echo "Installing uv to /usr/bin..." \
+    && bash /tmp/download/uv_install.sh \
+    && mv $HOME/.local/bin/uv /usr/bin/uv \
+    && rm /tmp/download/uv_install.sh \  
     \
     # --- Install Oh My Zsh to opt ---
     && echo "Installing Oh My Zsh for user dev..." \
@@ -64,10 +73,10 @@ RUN \
     && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git /opt/ohmyzsh/custom/plugins/zsh-syntax-highlighting
 
 # --- Add custom theme ---
-COPY ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
+COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
 
 # --- Configure user's .zshrc ---
-COPY zshrc /etc/zsh/zshrc
+COPY config/zshrc /etc/zsh/zshrc
 
 RUN \
     # give permission to all users

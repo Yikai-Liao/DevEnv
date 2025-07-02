@@ -9,3 +9,5 @@ Then run with
 ```
 
 apptainer run --no-init ./ai-dev-env.sif
+
+> Replace apptainer with singularity if you need

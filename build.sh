@@ -15,13 +15,30 @@ for arg in "$@"; do
 done
 
 docker build -t ai-dev-env:latest .
-docker save -o ai-dev-env.tar ai-dev-env:latest
+# docker save -o ai-dev-env.tar ai-dev-env:latest
 
-# Remove Docker image if --rmi flag is provided
+# # Remove Docker image if --rmi flag is provided
+# if [ "$REMOVE_IMAGE" = true ]; then
+#     echo "Removing Docker image ai-dev-env:latest..."
+#     docker rmi ai-dev-env:latest
+# fi
+
+TMP_BUILD_DIR="$(pwd)/tmp"
+
+# 确保临时目录存在
+mkdir -p "$TMP_BUILD_DIR"
+
+# 使用 --tmpdir 参数直接从 Docker 守护进程构建 SIF
+sudo apptainer build --tmpdir "$TMP_BUILD_DIR" --mksquashfs-args "-comp zstd" ai-dev-env.sif config/ai-dev-env.def
+
+echo "Apptainer image ai-dev-env.sif built successfully."
+
+# 根据标志删除 Docker 镜像
 if [ "$REMOVE_IMAGE" = true ]; then
     echo "Removing Docker image ai-dev-env:latest..."
     docker rmi ai-dev-env:latest
 fi
 
-sudo apptainer build ai-dev-env.sif config/ai-dev-env.def
-rm ai-dev-env.tar
+rm -rf "$TMP_BUILD_DIR"
+
+# rm ai-dev-env.tar

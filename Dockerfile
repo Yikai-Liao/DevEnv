@@ -43,17 +43,6 @@ RUN wget https://github.com/bootandy/dust/releases/download/v1.2.1/du-dust_1.2.1
     && dpkg -i du-dust_1.2.1-1_amd64.deb \
     && rm du-dust_1.2.1-1_amd64.deb
 
-# --- Install SingularityCE v4.0.2 from source ---
-RUN export VERSION=4.0.2 \
-    && wget https://github.com/sylabs/singularity-ce/releases/download/v${VERSION}/singularity-ce-${VERSION}.tar.gz \
-    && tar -xzf singularity-ce-${VERSION}.tar.gz \
-    && cd singularity-ce-${VERSION} \
-    && ./mconfig \
-    && make -C builddir \
-    && make -C builddir install \
-    && cd .. \
-    && rm -rf singularity-ce-${VERSION} singularity-ce-${VERSION}.tar.gz
-
 # --- Stage 3: User-level installations and configurations ---
 # All tools are installed in the user's home directory.
 RUN \

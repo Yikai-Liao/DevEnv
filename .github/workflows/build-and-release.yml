@@ -1,0 +1,28 @@
+name: Build SIF and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Apptainer
+        uses: eWaterCycle/setup-apptainer@v2
+
+      - name: Run build script
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Create Release and Upload SIF
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ai-dev-env.sif
+          tag_name: ${{ github.run_id }}
+          body: "Release of ai-dev-env.sif"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     htop \
     nvtop \
     gocryptfs \
+    python3-venv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     # Create user 'dev' with home directory and zsh shell
@@ -76,9 +77,9 @@ COPY config/.zshrc /etc/zsh/zshrc
 
 RUN \
     # give permission to all users
-    mkdir -p /etc/empty_zdotdir \
-    && chmod -R 644 /etc/empty_zdotdir \
+    touch /etc/zsh/.zshrc \
     && chmod 644 /etc/zsh/zshrc \
+    && chmod 644 /etc/zsh/.zshrc \
     # give opt permission to all users
     && chmod -R 755 /opt \
     # --- Configure Git LFS for the user ---

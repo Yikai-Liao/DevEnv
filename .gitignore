@@ -1,4 +1,5 @@
-**/*.sif
+**/*.sif*
 **/*.tar
 Running
 download/
+tmp/

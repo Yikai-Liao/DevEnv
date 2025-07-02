@@ -2,27 +2,87 @@ name: Build SIF and Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag name'
+        required: true
+        default: 'v1.0.0'
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Check if tag already exists
+        run: |
+          TAG_NAME="${{ github.event.inputs.tag_name }}"
+          echo "Checking if tag '$TAG_NAME' already exists..."
+          
+          # Check if tag exists locally or remotely
+          if git tag -l | grep -q "^${TAG_NAME}$"; then
+            echo "❌ Error: Tag '$TAG_NAME' already exists locally!"
+            exit 1
+          fi
+          
+          # Check if tag exists on remote
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG_NAME}$"; then
+            echo "❌ Error: Tag '$TAG_NAME' already exists on remote!"
+            exit 1
+          fi
+          
+          echo "✅ Tag '$TAG_NAME' does not exist. Proceeding with build..."
 
       - name: Set up Apptainer
         uses: eWaterCycle/setup-apptainer@v2
 
       - name: Run build script
         run: |
+          dh -h /
+          echo "Star Building"
+          chmod +x download.sh
           chmod +x build.sh
-          ./build.sh
+          ./download.sh
+          ./build.sh --rmi
 
-      - name: Create Release and Upload SIF
+      - name: Split SIF file into volumes
+        run: |
+          echo "Splitting SIF file into 1900MB volumes..."
+          split -b 1900M ai-dev-env.sif ai-dev-env.sif.part.
+          rm ai-dev-env.sif
+          ls -la ai-dev-env.sif.part.*
+
+      - name: Create Release and Upload Files
         uses: softprops/action-gh-release@v1
         with:
-          files: ai-dev-env.sif
-          tag_name: ${{ github.run_id }}
-          body: "Release of ai-dev-env.sif"
+          files: |
+            ai-dev-env.sif*
+          tag_name: ${{ github.event.inputs.tag_name }}
+          body: |
+            Release of ai-dev-env.sif
+            
+            **Instructions for large files:**
+            If you see multiple `.part.*` files, you need to reassemble them:
+            ```bash
+            cat ai-dev-env.sif.part.* > ai-dev-env.sif
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -57,7 +57,7 @@ RUN dpkg -i /tmp/download/*.deb \
 # All tools are installed in the user's home directory.
 RUN \
     # --- Install uv to /usr/bin/uv ---
-    && echo "Installing uv to /usr/bin..." \
+    echo "Installing uv to /usr/bin..." \
     && bash /tmp/download/uv_install.sh \
     && mv $HOME/.local/bin/uv /usr/bin/uv \
     && rm /tmp/download/uv_install.sh \  

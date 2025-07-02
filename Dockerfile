@@ -7,7 +7,19 @@ FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
 # Set non-interactive frontend for package installers to prevent prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-key del 7fa2af80
+# Copy pre-downloaded packages and libcurl.so.4
+COPY download/ /tmp/download/
+
+# Remove NVIDIA CUDA apt sources to prevent fetching from NVIDIA repo
+RUN apt-key del 7fa2af80 \
+    && rm -rf /etc/apt/sources.list.d/cuda.list
+
+RUN apt-get update \
+    && apt-get install -y curl
+RUN \
+    mv /tmp/download/fast-apt-mirror.sh /usr/local/bin/fast-apt-mirror.sh \
+    && chmod 755 /usr/local/bin/fast-apt-mirror.sh \
+    && fast-apt-mirror.sh find --apply --speedtests 64 --parallel 4
 
 # --- Stage 1: Root-level setup for essential tools ---
 # The CUDA base image already includes most build tools. We only add essentials.
@@ -43,9 +55,6 @@ RUN apt-get update && apt-get install -y \
     && mkdir /workspace \
     && chown -R dev:dev /workspace
 
-# Copy pre-downloaded packages
-COPY download/ /tmp/download/
-
 # Install pre-downloaded .deb packages and zellij
 RUN dpkg -i /tmp/download/*.deb \
     && rm /tmp/download/*.deb \
@@ -53,6 +62,15 @@ RUN dpkg -i /tmp/download/*.deb \
     && cp /tmp/download/zellij /usr/bin/zellij \
     && chmod 755 /usr/bin/zellij \
     && rm /tmp/download/zellij
+
+# Install python-based tools
+RUN echo "Installing Python-based tools..." \
+    cd /opt \
+    && python3 -m venv tools \
+    && source tools/bin/activate \
+    && pip install "huggingface-hub[hf_xet,cli]" gdown trash \
+    && rm -rf ~/.cache/pip
+
 
 # --- Stage 3: User-level installations and configurations ---
 # All tools are installed in the user's home directory.

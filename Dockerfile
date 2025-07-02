@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     axel \
     git-lfs \
     lsd \
+    vim \
     bat \
     htop \
     nvtop \
@@ -55,11 +56,6 @@ RUN dpkg -i /tmp/download/*.deb \
 # --- Stage 3: User-level installations and configurations ---
 # All tools are installed in the user's home directory.
 RUN \
-    # --- Install Miniforge to /opt/miniforge3 ---
-    echo "Installing Miniforge to /opt/miniforge3..." \
-    && bash /tmp/download/Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge3 \
-    && rm /tmp/download/Miniforge3-Linux-x86_64.sh \
-    \
     # --- Install uv to /usr/bin/uv ---
     && echo "Installing uv to /usr/bin..." \
     && bash /tmp/download/uv_install.sh \
@@ -76,7 +72,7 @@ RUN \
 COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
 
 # --- Configure user's .zshrc ---
-COPY config/zshrc /etc/zsh/zshrc
+COPY config/.zshrc /etc/zsh/.zshrc
 
 RUN \
     # give permission to all users

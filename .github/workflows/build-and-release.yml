@@ -26,7 +26,7 @@ jobs:
           dotnet: true
           haskell: true
           large-packages: true
-          docker-images: true
+          docker-images: false
           swap-storage: true
 
       - name: Checkout repository
@@ -56,7 +56,6 @@ jobs:
 
       - name: Run build script
         run: |
-          dh -h /
           echo "Star Building"
           chmod +x download.sh
           chmod +x build.sh

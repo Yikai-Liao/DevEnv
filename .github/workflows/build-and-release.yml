@@ -69,19 +69,70 @@ jobs:
           rm ai-dev-env.sif
           ls -la ai-dev-env.sif.part.*
 
+      - name: Generate release notes with download instructions
+        id: release_notes
+        run: |
+          TAG_NAME="${{ github.event.inputs.tag_name }}"
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          
+          # Get list of split files
+          SPLIT_FILES=$(ls ai-dev-env.sif.part.* | sort)
+          
+          # Generate wget commands for each split file
+          WGET_COMMANDS=""
+          for file in $SPLIT_FILES; do
+            WGET_COMMANDS="${WGET_COMMANDS}wget https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG_NAME}/${file}"$'\n'
+          done
+          
+          # Create release body
+          cat > release_body.md << EOF
+          # AI Development Environment ${TAG_NAME}
+          
+          This release contains the AI development environment SIF file, split into multiple parts due to GitHub's file size limitations.
+          
+          ## Quick Download and Setup
+          
+          ### Method 1: Download all parts and reassemble
+          \`\`\`bash
+          # Download all split files
+          ${WGET_COMMANDS}
+          # Reassemble the SIF file
+          cat ai-dev-env.sif.part.* > ai-dev-env.sif
+          
+          # Clean up split files (optional)
+          rm ai-dev-env.sif.part.*
+          \`\`\`
+          
+          ### Method 2: One-liner download and reassemble
+          \`\`\`bash
+          # Download and reassemble in one go
+          for part in \$(curl -s https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${TAG_NAME} | grep "browser_download_url.*ai-dev-env.sif.part" | cut -d '"' -f 4 | sort); do wget "\$part"; done && cat ai-dev-env.sif.part.* > ai-dev-env.sif && rm ai-dev-env.sif.part.*
+          \`\`\`
+          
+          ## Usage
+          After reassembling the SIF file, you can use it with Apptainer/Singularity:
+          \`\`\`bash
+          # Run interactive shell
+          apptainer shell ai-dev-env.sif
+          
+          # Execute specific command
+          apptainer exec ai-dev-env.sif <your-command>
+          \`\`\`
+          
+          ## File Information
+          - **Original file**: ai-dev-env.sif
+          - **Split into**: $(echo "$SPLIT_FILES" | wc -l) parts
+          - **Repository**: ${REPO_OWNER}/${REPO_NAME}
+          - **Version**: ${TAG_NAME}
+          EOF
+
       - name: Create Release and Upload Files
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ai-dev-env.sif*
+            ai-dev-env.sif.part.*
           tag_name: ${{ github.event.inputs.tag_name }}
-          body: |
-            Release of ai-dev-env.sif
-            
-            **Instructions for large files:**
-            If you see multiple `.part.*` files, you need to reassemble them:
-            ```bash
-            cat ai-dev-env.sif.part.* > ai-dev-env.sif
-            ```
+          body_path: release_body.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

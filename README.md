@@ -1,2 +1,11 @@
-# DevEnv
-A develop env using Apptainer
+## Build
+
+```bash
+build.sh
+```
+You will get ai-dev-env.sif
+
+Then run with 
+```
+
+apptainer run --no-init ./ai-dev-env.sif

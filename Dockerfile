@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     git-lfs \
     lsd \
     bat \
-    gocryptfs
+    gocryptfs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     # Create user 'dev' with home directory and zsh shell

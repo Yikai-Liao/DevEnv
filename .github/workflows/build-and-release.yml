@@ -61,6 +61,7 @@ jobs:
           chmod +x build.sh
           ./download.sh
           ./build.sh --rmi
+          apptainer exec --no-init ai-dev-env.sif bash -c "echo 'Build completed successfully!'"
 
       - name: Split SIF file into volumes
         run: |

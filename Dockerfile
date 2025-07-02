@@ -14,12 +14,8 @@ COPY download/ /tmp/download/
 RUN apt-key del 7fa2af80 \
     && rm -rf /etc/apt/sources.list.d/cuda.list
 
-RUN apt-get update \
-    && apt-get install -y curl
-RUN \
-    mv /tmp/download/fast-apt-mirror.sh /usr/local/bin/fast-apt-mirror.sh \
-    && chmod 755 /usr/local/bin/fast-apt-mirror.sh \
-    && fast-apt-mirror.sh find --apply --speedtests 64 --parallel 4
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
+    sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources
 
 # --- Stage 1: Root-level setup for essential tools ---
 # The CUDA base image already includes most build tools. We only add essentials.

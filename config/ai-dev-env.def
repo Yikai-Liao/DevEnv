@@ -2,5 +2,5 @@ Bootstrap: docker-archive
 From: ai-dev-env.tar 
 
 %environment
-    export ZDOTDIR=/etc/zsh
+    export ZDOTDIR=/etc/empty_zdotdir
 

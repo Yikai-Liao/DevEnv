@@ -72,11 +72,13 @@ RUN \
 COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
 
 # --- Configure user's .zshrc ---
-COPY config/.zshrc /etc/zsh/.zshrc
+COPY config/.zshrc /etc/zsh/zshrc
 
 RUN \
     # give permission to all users
-    chmod 644 /etc/zsh/.zshrc \
+    mkdir -p /etc/empty_zdotdir \
+    && chmod -R 644 /etc/empty_zdotdir \
+    && chmod 644 /etc/zsh/zshrc \
     # give opt permission to all users
     && chmod -R 755 /opt \
     # --- Configure Git LFS for the user ---

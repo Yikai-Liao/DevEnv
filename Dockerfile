@@ -15,11 +15,17 @@ RUN apt-key del 7fa2af80 \
     && rm -rf /etc/apt/sources.list.d/cuda.list
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
-    sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources
+    sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
+    apt-get update
 
 # --- Stage 1: Root-level setup for essential tools ---
 # The CUDA base image already includes most build tools. We only add essentials.
-RUN apt-get update && apt-get install -y \
+RUN  apt-get install -y software-properties-common \
+    && add-apt-repository ppa:apt-fast/stable \
+    && apt-get update \
+    && apt-get install -y apt-fast aria2
+
+RUN apt-fast install -y \
     sudo \
     curl \
     wget \
@@ -37,6 +43,7 @@ RUN apt-get update && apt-get install -y \
     nvtop \
     gocryptfs \
     python3-venv \
+    python3-pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     # Create user 'dev' with home directory and zsh shell
@@ -61,10 +68,11 @@ RUN dpkg -i /tmp/download/*.deb \
 
 # Install python-based tools
 RUN echo "Installing Python-based tools..." \
-    cd /opt \
-    && python3 -m venv tools \
-    && source tools/bin/activate \
-    && pip install "huggingface-hub[hf_xet,cli]" gdown trash \
+    && python3 -m venv /opt/tools \
+    && /opt/tools/bin/pip install "huggingface-hub[hf_xet,cli]" gdown trash \
+    && ln -s /opt/tools/bin/huggingface-cli /usr/bin/huggingface-cli \
+    && ln -s /opt/tools/bin/gdown /usr/bin/gdown \
+    && ln -s /opt/tools/bin/trash /usr/bin/trash \
     && rm -rf ~/.cache/pip
 
 

@@ -13,7 +13,7 @@ COPY download/ /tmp/download/
 # Remove NVIDIA CUDA apt sources to prevent fetching from NVIDIA repo
 RUN apt-key del 7fa2af80 \
     && rm -rf /etc/apt/sources.list.d/cuda.list \
-    && apt-get remove -y "nsight-compute-*" "libcudnn*"
+    && apt-get remove -y --allow-change-held-packages "nsight-compute-*" "libcudnn*"
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
     sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \

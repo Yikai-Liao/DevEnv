@@ -29,7 +29,7 @@ TMP_BUILD_DIR="$(pwd)/tmp"
 mkdir -p "$TMP_BUILD_DIR"
 
 # 使用 --tmpdir 参数直接从 Docker 守护进程构建 SIF
-apptainer build --mksquashfs-args="-comp zstd" --tmpdir "$TMP_BUILD_DIR" ai-dev-env.sif config/ai-dev-env.def
+apptainer build --tmpdir "$TMP_BUILD_DIR" ai-dev-env.sif config/ai-dev-env.def
 
 echo "Apptainer image ai-dev-env.sif built successfully."
 

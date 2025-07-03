@@ -94,17 +94,6 @@ RUN \
     && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /opt/ohmyzsh/custom/plugins/zsh-autosuggestions \
     && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git /opt/ohmyzsh/custom/plugins/zsh-syntax-highlighting
 
-
-# --- Install Node JS ---
-RUN \
-    # Download and install fnm:
-    curl -o- https://fnm.vercel.app/install | bash \
-    # Download and install Node.js:
-    && fnm install 22 \
-    # Download and install pnpm:
-    && corepack enable pnpm \
-    && npm install -g @google/gemini-cli
-
 # --- Add custom theme ---
 COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
 

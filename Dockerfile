@@ -31,6 +31,7 @@ RUN apt-fast install -y \
     curl \
     wget \
     build-essential \
+    unzip \
     cmake \
     ninja-build \
     clang \

@@ -12,7 +12,8 @@ COPY download/ /tmp/download/
 
 # Remove NVIDIA CUDA apt sources to prevent fetching from NVIDIA repo
 RUN apt-key del 7fa2af80 \
-    && rm -rf /etc/apt/sources.list.d/cuda.list
+    && rm -rf /etc/apt/sources.list.d/cuda.list \
+    && apt-get remove -y "nsight-compute-*" "libcudnn*"
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
     sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
@@ -69,10 +70,11 @@ RUN dpkg -i /tmp/download/*.deb \
 # Install python-based tools
 RUN echo "Installing Python-based tools..." \
     && python3 -m venv /opt/tools \
-    && /opt/tools/bin/pip install "huggingface-hub[hf_xet,cli]" gdown trash \
+    && /opt/tools/bin/pip install "huggingface-hub[hf_xet,cli]" gdown trash glances \
     && ln -s /opt/tools/bin/huggingface-cli /usr/bin/huggingface-cli \
     && ln -s /opt/tools/bin/gdown /usr/bin/gdown \
     && ln -s /opt/tools/bin/trash /usr/bin/trash \
+    && ln -s /opt/tools/bin/glances /usr/bin/glances \
     && rm -rf ~/.cache/pip
 
 
@@ -90,6 +92,17 @@ RUN \
     && git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /opt/ohmyzsh \
     && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /opt/ohmyzsh/custom/plugins/zsh-autosuggestions \
     && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git /opt/ohmyzsh/custom/plugins/zsh-syntax-highlighting
+
+
+# --- Install Node JS ---
+RUN \
+    # Download and install fnm:
+    curl -o- https://fnm.vercel.app/install | bash \
+    # Download and install Node.js:
+    && fnm install 22 \
+    # Download and install pnpm:
+    && corepack enable pnpm \
+    && npm install -g @google/gemini-cli
 
 # --- Add custom theme ---
 COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme

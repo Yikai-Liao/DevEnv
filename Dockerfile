@@ -90,12 +90,12 @@ RUN \
 
 # Copy custom theme and .zshrc to user's home directory
 COPY config/ys-me.zsh-theme /etc/ohmyzsh/themes/ys-me.zsh-theme
-COPY config/.zshrc /etc/.zshrc
+COPY config/.zshrc /etc/zsh/.zshrc
 
 # Set permissions for Oh My Zsh and user-specific files
 RUN chmod -R 755 /etc/ohmyzsh \
-    && chmod 644 /etc/.zshrc \
-    && cp /etc/.zshrc /etc/zshrc
+    && chmod 644 /etc/zsh/.zshrc \
+    && cp /etc/zsh/.zshrc /etc/zsh/zshrc
 
 # Set default command to launch Zsh shell
 

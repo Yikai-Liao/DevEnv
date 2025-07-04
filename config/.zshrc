@@ -2,7 +2,7 @@
 export CUDA_HOME="/usr/local/cuda"
 
 # Oh My Zsh user configuration
-export ZSH="/opt/ohmyzsh"
+export ZSH="/etc/ohmyzsh"
 ZSH_THEME="ys-me"
 plugins=(
   z

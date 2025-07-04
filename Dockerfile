@@ -1,115 +1,113 @@
 # Dockerfile for a robust, isolated, and modern development environment
 # Base: NVIDIA CUDA 12.6.3 with cuDNN on Ubuntu 24.04
-# Installs tools and configs under the non-root 'dev' user for better isolation.
+# Installs tools and configurations under the non-root 'dev' user for better isolation.
 
 FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
 
-# Set non-interactive frontend for package installers to prevent prompts
+# Set non-interactive frontend for package installers
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Copy pre-downloaded packages and libcurl.so.4
+# Copy pre-downloaded packages
 COPY download/ /tmp/download/
 
-# Remove NVIDIA CUDA apt sources to prevent fetching from NVIDIA repo
+# Remove NVIDIA CUDA apt sources and update package list
 RUN apt-key del 7fa2af80 \
     && rm -rf /etc/apt/sources.list.d/cuda.list \
-    && apt-get remove -y --allow-change-held-packages "nsight-compute-*" "libcudnn*"
+    && apt-get remove -y --allow-change-held-packages "nsight-compute-*" "libcudnn*" \
+    && sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources \
+    && sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources \
+    && apt-get update
 
-RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
-    sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources && \
-    apt-get update
-
-# --- Stage 1: Root-level setup for essential tools ---
-# The CUDA base image already includes most build tools. We only add essentials.
-RUN  apt-get install -y software-properties-common \
+# --- Stage 1: Root-level setup for essential tools and user creation ---
+RUN apt-get update && apt-get install -y software-properties-common \
     && add-apt-repository ppa:apt-fast/stable \
     && apt-get update \
-    && apt-get install -y apt-fast aria2
-
-RUN apt-fast install -y \
+    && apt-get install -y apt-fast aria2 \
+    && apt-fast install -y \
+    # Core utilities and system tools
     sudo \
     curl \
     wget \
-    build-essential \
     unzip \
-    cmake \
-    ninja-build \
-    clang \
     zsh \
     axel \
     git-lfs \
+    gocryptfs \
+    # Build tools
+    build-essential \
+    cmake \
+    ninja-build \
+    clang \
+    # Monitoring and viewing tools
     lsd \
     vim \
     bat \
     htop \
     nvtop \
-    gocryptfs \
+    # Python related tools
     python3-venv \
     python3-pip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    # Create user 'dev' with home directory and zsh shell
+    # Create 'dev' user with home directory and zsh shell
     && useradd --create-home --shell /bin/zsh dev \
     # Add 'dev' to the sudo group
     && adduser dev sudo \
-    # Set a password for 'dev' (e.g., 'dev')
+    # Set password for 'dev' user (e.g., 'dev')
     && echo "dev:dev" | chpasswd \
     # Configure passwordless sudo for the sudo group
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
-    # Create a workspace directory owned by 'dev'
+    # Create and set ownership for workspace directory
     && mkdir /workspace \
     && chown -R dev:dev /workspace
 
 # Install pre-downloaded .deb packages and zellij
 RUN dpkg -i /tmp/download/*.deb \
     && rm /tmp/download/*.deb \
-    # Install zellij to /usr/bin
     && cp /tmp/download/zellij /usr/bin/zellij \
     && chmod 755 /usr/bin/zellij \
     && rm /tmp/download/zellij
 
-# Install python-based tools
+# Install Python-based tools
 RUN echo "Installing Python-based tools..." \
     && python3 -m venv /opt/tools \
     && /opt/tools/bin/pip install "huggingface-hub[hf_xet,cli]" gdown trash glances \
-    && ln -s /opt/tools/bin/huggingface-cli /usr/bin/huggingface-cli \
-    && ln -s /opt/tools/bin/gdown /usr/bin/gdown \
-    && ln -s /opt/tools/bin/trash /usr/bin/trash \
-    && ln -s /opt/tools/bin/glances /usr/bin/glances \
+    && ln -s /opt/tools/bin/huggingface-cli /usr/local/bin/huggingface-cli \
+    && ln -s /opt/tools/bin/gdown /usr/local/bin/gdown \
+    && ln -s /opt/tools/bin/trash /usr/local/bin/trash \
+    && ln -s /opt/tools/bin/glances /usr/local/bin/glances \
     && rm -rf ~/.cache/pip
 
+# --- Stage 2: User-level installations and configurations ---
+USER dev
+WORKDIR /home/dev
 
-# --- Stage 3: User-level installations and configurations ---
-# All tools are installed in the user's home directory.
 RUN \
-    # --- Install uv to /usr/bin/uv ---
-    echo "Installing uv to /usr/bin..." \
+    # Install uv to /usr/local/bin/uv
+    echo "Installing uv to /usr/local/bin..." \
     && bash /tmp/download/uv_install.sh \
-    && mv $HOME/.local/bin/uv /usr/bin/uv \
-    && rm /tmp/download/uv_install.sh \  
+    && sudo mv /home/dev/.local/bin/uv /usr/local/bin/uv \
+    && rm /tmp/download/uv_install.sh \
     \
-    # --- Install Oh My Zsh to opt ---
+    # Install Oh My Zsh
     && echo "Installing Oh My Zsh for user dev..." \
-    && git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /opt/ohmyzsh \
-    && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /opt/ohmyzsh/custom/plugins/zsh-autosuggestions \
-    && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git /opt/ohmyzsh/custom/plugins/zsh-syntax-highlighting
-
-# --- Add custom theme ---
-COPY config/ys-me.zsh-theme /opt/ohmyzsh/themes/ys-me.zsh-theme
-
-# --- Configure user's .zshrc ---
-COPY config/.zshrc /etc/zsh/zshrc
-
-RUN \
-    # give permission to all users
-    touch /etc/zsh/.zshrc \
-    && chmod 644 /etc/zsh/zshrc \
-    && chmod 644 /etc/zsh/.zshrc \
-    # give opt permission to all users
-    && chmod -R 755 /opt \
-    # --- Configure Git LFS for the user ---
+    && git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /home/dev/.ohmyzsh \
+    && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /home/dev/.ohmyzsh/custom/plugins/zsh-autosuggestions \
+    && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git /home/dev/.ohmyzsh/custom/plugins/zsh-syntax-highlighting \
+    \
+    # Configure Git LFS
     && echo "Configuring Git LFS for user dev..." \
     && git lfs install
 
-# Set the default command to launch the Zsh shell
+# Copy custom theme and .zshrc to user's home directory
+COPY --chown=dev:dev config/ys-me.zsh-theme /home/dev/.ohmyzsh/themes/ys-me.zsh-theme
+COPY --chown=dev:dev config/.zshrc /home/dev/.zshrc
+
+# Set permissions for Oh My Zsh and user-specific files
+RUN sudo chmod -R 755 /home/dev/.ohmyzsh \
+    && sudo chmod 644 /home/dev/.zshrc
+
+# Set default command to launch Zsh shell
+WORKDIR /workspace
+USER dev
 CMD ["/bin/zsh"]

@@ -1,5 +1,4 @@
 Bootstrap: docker-daemon
-From: ai-dev-env:latest
 
 %environment
     export ZDOTDIR=/etc/empty_zdotdir

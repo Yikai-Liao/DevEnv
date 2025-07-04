@@ -138,7 +138,8 @@ jobs:
             RELEASE_BODY+="### Method 1: Download all parts and reassemble\n"
             RELEASE_BODY+="\`\`\`bash\n"
             RELEASE_BODY+="# Download all split files\n"
-            RELEASE_BODY+="${WGET_COMMANDS}\n"
+            RELEASE_BODY+="${WGET_COMMANDS}"
+            RELEASE_BODY+="\n" # 添加一个空行，以改善排版
             RELEASE_BODY+="# Reassemble the SIF file\n"
             RELEASE_BODY+="cat ai-dev-env.sif.part.* > ai-dev-env.sif\n\n"
             RELEASE_BODY+="# Clean up split files (optional)\n"

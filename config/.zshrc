@@ -19,7 +19,6 @@ if [[ -o interactive ]]; then
   echo "      🚀 Welcome to your ISOLATED Modern Development Environment! 🚀"
   echo "======================================================================"
   echo "  Base Image: NVIDIA CUDA 12.6.3 on Ubuntu 24.04"
-  echo "  Tools (Conda, uv) are installed in /home/dev."
   echo "  Environment is loaded from /etc/zsh/zshrc"
   echo "======================================================================"
   echo ""

@@ -6,8 +6,18 @@ on:
       tag_name:
         description: 'Release tag name'
         required: true
-        default: 'v1.0.0'
+        default: 'v0.2.0'
         type: string
+      push_to_ghcr:
+        description: 'Push Docker image to GitHub Container Registry (GHCR)'
+        required: false
+        default: true
+        type: boolean
+      build_sif:
+        description: 'Build Apptainer (SIF) image'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -54,85 +64,109 @@ jobs:
       - name: Set up Apptainer
         uses: eWaterCycle/setup-apptainer@v2
 
+      - name: Login to GitHub Container Registry
+        if: ${{ github.event.inputs.push_to_ghcr == true }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run download script
+        run: |
+          echo "Start Downloading"
+          chmod +x download.sh
+          ./download.sh
+
       - name: Run build script
         run: |
-          echo "Star Building"
-          chmod +x download.sh
+          echo "Start Building"
           chmod +x build.sh
-          ./download.sh
-          ./build.sh --rmi
-          apptainer exec --no-init ai-dev-env.sif bash -c "echo 'Build completed successfully!'"
+          
+          # Extract CUDA base image tag from Dockerfile
+          CUDA_TAG=$(grep -oP 'FROM nvidia/cuda:\K[^ ]+' Dockerfile)
+          echo "Extracted CUDA_TAG: $CUDA_TAG"
+          
+          BUILD_COMMAND="./build.sh --rmi --tag=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.event.inputs.tag_name }}-cuda-${CUDA_TAG}"
+          if ${{ github.event.inputs.push_to_ghcr == true }}; then
+            BUILD_COMMAND+=" --push"
+          fi
+          if ${{ github.event.inputs.build_sif == true }}; then
+            BUILD_COMMAND+=" --sif"
+          fi
+          
+          echo "Running build command: $BUILD_COMMAND"
+          eval "$BUILD_COMMAND"
+          
+          # Only execute apptainer command if SIF was built
+          if ${{ github.event.inputs.build_sif == true }}; then
+            apptainer exec --no-init ai-dev-env.sif bash -c "echo 'Build completed successfully!'"
+          fi
 
       - name: Split SIF file into volumes
+        if: ${{ github.event.inputs.build_sif == true }}
         run: |
           echo "Splitting SIF file into 1900MB volumes..."
           split -b 1900M ai-dev-env.sif ai-dev-env.sif.part.
           rm ai-dev-env.sif
           ls -la ai-dev-env.sif.part.*
 
-      - name: Generate release notes with download instructions
+      - name: Generate release notes
         id: release_notes
         run: |
           TAG_NAME="${{ github.event.inputs.tag_name }}"
           REPO_OWNER="${{ github.repository_owner }}"
           REPO_NAME="${{ github.event.repository.name }}"
+          BUILD_SIF="${{ github.event.inputs.build_sif }}"
           
-          # Get list of split files
-          SPLIT_FILES=$(ls ai-dev-env.sif.part.* | sort)
+          RELEASE_BODY="# AI Development Environment ${TAG_NAME}\n\n"
           
-          # Generate wget commands for each split file
-          WGET_COMMANDS=""
-          for file in $SPLIT_FILES; do
-            WGET_COMMANDS="${WGET_COMMANDS}wget https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG_NAME}/${file}"$'\n'
-          done
+          if [ "$BUILD_SIF" = "true" ]; then
+            # Get list of split files
+            SPLIT_FILES=$(ls ai-dev-env.sif.part.* | sort)
+            
+            # Generate wget commands for each split file
+            WGET_COMMANDS=""
+            for file in $SPLIT_FILES; do
+              WGET_COMMANDS="${WGET_COMMANDS}wget https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG_NAME}/${file}"$'\n'
+            done
+            
+            RELEASE_BODY+="This release contains the AI development environment SIF file, split into multiple parts due to GitHub's file size limitations.\n\n"
+            RELEASE_BODY+="## Quick Download and Setup\n\n"
+            RELEASE_BODY+="### Method 1: Download all parts and reassemble\n"
+            RELEASE_BODY+="\`\`\`bash\n"
+            RELEASE_BODY+="# Download all split files\n"
+            RELEASE_BODY+="${WGET_COMMANDS}\n"
+            RELEASE_BODY+="# Reassemble the SIF file\n"
+            RELEASE_BODY+="cat ai-dev-env.sif.part.* > ai-dev-env.sif\n\n"
+            RELEASE_BODY+="# Clean up split files (optional)\n"
+            RELEASE_BODY+="rm ai-dev-env.sif.part.*\n"
+            RELEASE_BODY+="\`\`\`\n\n"
+            RELEASE_BODY+="## Usage\n"
+            RELEASE_BODY+="After reassembling the SIF file, you can use it with Apptainer/Singularity:\n"
+            RELEASE_BODY+="\`\`\`bash\n"
+            RELEASE_BODY+="# Run interactive shell\n"
+            RELEASE_BODY+="apptainer shell ai-dev-env.sif\n\n"
+            RELEASE_BODY+="# Execute specific command\n"
+            RELEASE_BODY+="apptainer exec ai-dev-env.sif <your-command>\n"
+            RELEASE_BODY+="\`\`\`\n\n"
+            RELEASE_BODY+="## File Information\n"
+            RELEASE_BODY+="- **Original file**: ai-dev-env.sif\n"
+            RELEASE_BODY+="- **Split into**: $(echo "$SPLIT_FILES" | wc -l) parts\n"
+          else
+            RELEASE_BODY+="This release is for the AI development environment Docker image.\n\n"
+          fi
           
-          # Create release body
-          cat > release_body.md << EOF
-          # AI Development Environment ${TAG_NAME}
+          RELEASE_BODY+="- **Repository**: ${REPO_OWNER}/${REPO_NAME}\n"
+          RELEASE_BODY+="- **Version**: ${TAG_NAME}\n"
           
-          This release contains the AI development environment SIF file, split into multiple parts due to GitHub's file size limitations.
-          
-          ## Quick Download and Setup
-          
-          ### Method 1: Download all parts and reassemble
-          \`\`\`bash
-          # Download all split files
-          ${WGET_COMMANDS}
-          # Reassemble the SIF file
-          cat ai-dev-env.sif.part.* > ai-dev-env.sif
-          
-          # Clean up split files (optional)
-          rm ai-dev-env.sif.part.*
-          \`\`\`
-          
-          ### Method 2: One-liner download and reassemble
-          \`\`\`bash
-          # Download and reassemble in one go
-          for part in \$(curl -s https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${TAG_NAME} | grep "browser_download_url.*ai-dev-env.sif.part" | cut -d '"' -f 4 | sort); do wget "\$part"; done && cat ai-dev-env.sif.part.* > ai-dev-env.sif && rm ai-dev-env.sif.part.*
-          \`\`\`
-          
-          ## Usage
-          After reassembling the SIF file, you can use it with Apptainer/Singularity:
-          \`\`\`bash
-          # Run interactive shell
-          apptainer shell ai-dev-env.sif
-          
-          # Execute specific command
-          apptainer exec ai-dev-env.sif <your-command>
-          \`\`\`
-          
-          ## File Information
-          - **Original file**: ai-dev-env.sif
-          - **Split into**: $(echo "$SPLIT_FILES" | wc -l) parts
-          - **Repository**: ${REPO_OWNER}/${REPO_NAME}
-          - **Version**: ${TAG_NAME}
-          EOF
+          echo "$RELEASE_BODY" > release_body.md
 
       - name: Create Release and Upload Files
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ai-dev-env.sif.part.*
+            ${{ github.event.inputs.build_sif == true && 'ai-dev-env.sif.part.*' || '' }}
           tag_name: ${{ github.event.inputs.tag_name }}
           body_path: release_body.md
         env:

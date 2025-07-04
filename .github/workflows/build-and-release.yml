@@ -92,10 +92,10 @@ jobs:
           REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           REPO_NAME_LOWER=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
           BUILD_COMMAND="./build.sh --rmi --tag=ghcr.io/${REPO_OWNER_LOWER}/${REPO_NAME_LOWER}:${{ github.event.inputs.tag_name }}-cuda-${CUDA_TAG}"
-          if ${{ github.event.inputs.push_to_ghcr == true }}; then
+          if ${{ github.event.inputs.push_to_ghcr }}; then
             BUILD_COMMAND+=" --push"
           fi
-          if ${{ github.event.inputs.build_sif == true }}; then
+          if ${{ github.event.inputs.build_sif }}; then
             BUILD_COMMAND+=" --sif"
           fi
           
@@ -103,12 +103,12 @@ jobs:
           eval "$BUILD_COMMAND"
           
           # Only execute apptainer command if SIF was built
-          if ${{ github.event.inputs.build_sif == true }}; then
+          if ${{ github.event.inputs.build_sif }}; then
             apptainer exec --no-init ai-dev-env.sif bash -c "echo 'Build completed successfully!'"
           fi
 
       - name: Split SIF file into volumes
-        if: ${{ github.event.inputs.build_sif == true }}
+        if: ${{ github.event.inputs.build_sif }}
         run: |
           echo "Splitting SIF file into 1900MB volumes..."
           split -b 1900M ai-dev-env.sif ai-dev-env.sif.part.
@@ -131,7 +131,7 @@ jobs:
         with:
           name: AI Development Environment ${{ github.event.inputs.tag_name }}
           files: |
-            ${{ github.event.inputs.build_sif == true && 'ai-dev-env.sif.part.*' || '' }}
+            ${{ github.event.inputs.build_sif && 'ai-dev-env.sif.part.*' || '' }}
           tag_name: ${{ github.event.inputs.tag_name }}
           body_path: release_body.md
         env:

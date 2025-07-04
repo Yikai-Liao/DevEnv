@@ -65,7 +65,7 @@ jobs:
         uses: eWaterCycle/setup-apptainer@v2
 
       - name: Login to GitHub Container Registry
-        if: ${{ github.event.inputs.push_to_ghcr == true }}
+        if: ${{ github.event.inputs.push_to_ghcr }}
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -87,7 +87,9 @@ jobs:
           CUDA_TAG=$(grep -oP 'FROM nvidia/cuda:\K[^ ]+' Dockerfile)
           echo "Extracted CUDA_TAG: $CUDA_TAG"
           
-          BUILD_COMMAND="./build.sh --rmi --tag=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.event.inputs.tag_name }}-cuda-${CUDA_TAG}"
+          REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME_LOWER=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          BUILD_COMMAND="./build.sh --rmi --tag=ghcr.io/${REPO_OWNER_LOWER}/${REPO_NAME_LOWER}:${{ github.event.inputs.tag_name }}-cuda-${CUDA_TAG}"
           if ${{ github.event.inputs.push_to_ghcr == true }}; then
             BUILD_COMMAND+=" --push"
           fi

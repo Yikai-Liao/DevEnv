@@ -10,29 +10,25 @@ IMAGE_TAG="ai-dev-env:latest"
 PUSH_IMAGE=false
 BUILD_SIF=false
 
-for arg in "$@"; do
-    case $arg in
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
         --rmi)
             REMOVE_IMAGE=true
-            shift
             ;;
         --tag=*)
-            IMAGE_TAG="${arg#*=}"
-            shift
+            IMAGE_TAG="${1#*=}"
             ;;
         --push)
             PUSH_IMAGE=true
-            shift
             ;;
         --sif)
             BUILD_SIF=true
-            shift
             ;;
         *)
             # 忽略未知选项
-            shift
             ;;
     esac
+    shift
 done
 
 # --- Build Docker Image ---

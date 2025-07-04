@@ -118,58 +118,18 @@ jobs:
       - name: Generate release notes
         id: release_notes
         run: |
-          TAG_NAME="${{ github.event.inputs.tag_name }}"
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          BUILD_SIF="${{ github.event.inputs.build_sif }}"
-          
-          RELEASE_BODY="# AI Development Environment ${TAG_NAME}\n\n"
-          
-          if [ "$BUILD_SIF" = "true" ]; then
-            # Get list of split files
-            SPLIT_FILES=$(ls ai-dev-env.sif.part.* | sort)
-            
-            # Generate wget commands for each split file
-            WGET_COMMANDS=""
-            for file in $SPLIT_FILES; do
-              WGET_COMMANDS="${WGET_COMMANDS}wget https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG_NAME}/${file}"$'\n'
-            done
-            
-            RELEASE_BODY+="This release contains the AI development environment SIF file, split into multiple parts due to GitHub's file size limitations.\n\n"
-            RELEASE_BODY+="## Quick Download and Setup\n\n"
-            RELEASE_BODY+="### Method 1: Download all parts and reassemble\n"
-            RELEASE_BODY+="\`\`\`bash\n"
-            RELEASE_BODY+="# Download all split files\n"
-            RELEASE_BODY+="${WGET_COMMANDS}"
-            RELEASE_BODY+="\n" # 添加一个空行，以改善排版
-            RELEASE_BODY+="# Reassemble the SIF file\n"
-            RELEASE_BODY+="cat ai-dev-env.sif.part.* > ai-dev-env.sif\n\n"
-            RELEASE_BODY+="# Clean up split files (optional)\n"
-            RELEASE_BODY+="rm ai-dev-env.sif.part.*\n"
-            RELEASE_BODY+="\`\`\`\n\n"
-            RELEASE_BODY+="## Usage\n"
-            RELEASE_BODY+="After reassembling the SIF file, you can use it with Apptainer/Singularity:\n"
-            RELEASE_BODY+="\`\`\`bash\n"
-            RELEASE_BODY+="# Run interactive shell\n"
-            RELEASE_BODY+="apptainer shell ai-dev-env.sif\n\n"
-            RELEASE_BODY+="# Execute specific command\n"
-            RELEASE_BODY+="apptainer exec ai-dev-env.sif <your-command>\n"
-            RELEASE_BODY+="\`\`\`\n\n"
-            RELEASE_BODY+="## File Information\n"
-            RELEASE_BODY+="- **Original file**: ai-dev-env.sif\n"
-            RELEASE_BODY+="- **Split into**: $(echo "$SPLIT_FILES" | wc -l) parts\n"
-          else
-            RELEASE_BODY+="This release is for the AI development environment Docker image.\n\n"
-          fi
-          
-          RELEASE_BODY+="- **Repository**: ${REPO_OWNER}/${REPO_NAME}\n"
-          RELEASE_BODY+="- **Version**: ${TAG_NAME}\n"
-          
-          echo "$RELEASE_BODY" > release_body.md
+          chmod +x generate-release-notes.sh
+          ./generate-release-notes.sh \
+            --tag "${{ github.event.inputs.tag_name }}" \
+            --repo-owner "${{ github.repository_owner }}" \
+            --repo-name "${{ github.event.repository.name }}" \
+            --build-sif "${{ github.event.inputs.build_sif }}" \
+            --output "release_body.md"
 
       - name: Create Release and Upload Files
         uses: softprops/action-gh-release@v1
         with:
+          name: AI Development Environment ${{ github.event.inputs.tag_name }}
           files: |
             ${{ github.event.inputs.build_sif == true && 'ai-dev-env.sif.part.*' || '' }}
           tag_name: ${{ github.event.inputs.tag_name }}

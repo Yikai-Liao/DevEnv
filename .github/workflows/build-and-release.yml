@@ -1,4 +1,4 @@
-name: Build SIF and Release
+name: Build Image and Release
 
 on:
   workflow_dispatch:

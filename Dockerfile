@@ -15,7 +15,8 @@ RUN apt-key del 7fa2af80 \
     && rm -rf /etc/apt/sources.list.d/cuda.list \
     && sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources \
     && sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|' /etc/apt/sources.list.d/ubuntu.sources \
-    && apt-get update
+    && apt-get update \
+    && apt-get remove -y --allow-change-held-packages "*nsight*"
 
 # --- Stage 1: Root-level setup for essential tools and user creation ---
 RUN apt-get update && apt-get install -y software-properties-common \
